@@ -1,8 +1,12 @@
-import { AnimatedSprite, Container, Graphics, Sprite, Text, useTick } from "@pixi/react";
+
+import * as PixiReact from "@pixi/react";
 import { TextStyle, Texture, Graphics as GraphicsRaw, ColorMatrixFilter } from "pixi.js";
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { renderCurve as _renderCurve, createGradTexture, curveFunction, maskDraw as _drawMask, smoothen, _drawOuterBoundery, _drawInnerBoundery, interpolate, webpORpng } from "../../utils";
 import { dimensionType, gameAnimStatusType } from "../../@types";
+
+// DO NOT remove: Cast to any to handle missing type definitions in some environments
+const { AnimatedSprite, Container, Graphics, Sprite, Text, useTick } = PixiReact as any;
 
 const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigParachute }: { payout: number, game_anim_status: gameAnimStatusType, dimension: dimensionType, pixiDimension: dimensionType, trigParachute: { uniqId: number, isMe: boolean } }) => {
 
@@ -71,8 +75,9 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
         }
     }, [])
 
-    useTick((delta) => {
-        setHueRotate(prev => (prev + delta / 500))
+    useTick((delta: any) => {
+        // DO NOT change: delta can be a number or Ticker object, cast to any is safer for arithmetic
+        setHueRotate(prev => (prev + (delta?.deltaTime ?? delta) / 500))
     });
 
     const maskRef = useRef<GraphicsRaw>(null);
@@ -87,11 +92,12 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
 
 
     const [pulseGraph, setPulseGraph] = useState(1);
-    useTick((delta) => {
+    useTick((delta: any) => {
         if (game_anim_status !== "ANIM_STARTED") return
         const amp = 0.06
         let pulse = amp;
-        tickRef.current += delta * 0.01
+        // DO NOT change: delta can be a number or Ticker object, cast to any is safer for arithmetic
+        tickRef.current += (delta?.deltaTime ?? delta) * 0.01
         pulse = Math.sin(tickRef.current) * amp
         setPulseGraph(pulse)
     })
@@ -199,7 +205,8 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
                             fontSize: 100,
                             fontWeight: '700',
                             fill: ['#ffffff', '#ffffff'], // gradient
-                            stroke: { color: '#111111', width: 2 },
+                            stroke: '#111111',
+                            strokeThickness: 2,
                             letterSpacing: 0,
                             dropShadow: false,
                             dropShadowColor: '#ccced2',
@@ -223,7 +230,7 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
                             image={`${process.env.REACT_APP_ASSETS_IMAGE_URL}${webpORpng}/dot.${webpORpng}`}
                             anchor={0.5}
                             // x={20} y={coor + (Math.max(0, tickRef.current - 5) * 100 % (140000 / pixiDimension.width)) - 100}
-                            x={20} y={Number(coor + (hueRotate * 400 % (140000 / (pixiDimension.width || 1))) - 100)}
+                            x={20} y={((coor as any) + (hueRotate * 400 % (140000 / (pixiDimension.width || 1))) - 100)}
                         />
                         <Sprite
                             scale={0.4}
@@ -231,7 +238,7 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
                             anchor={0.5}
                             // x={coor - (Math.max(0, tickRef.current - 5) * 100 % (140000 / pixiDimension.width)) - 100}
                             // y={dimension.height - 20}
-                            x={Number(coor - (hueRotate * 400 % (140000 / (pixiDimension.width || 1))) - 100)}
+                            x={((coor as any) - (hueRotate * 400 % (140000 / (pixiDimension.width || 1))) - 100)}
                             y={dimension.height - 20}
                         />
                     </Container>
@@ -242,29 +249,6 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
             {/* <WaitingSprite visible={game_anim_status === "WAITING"} dimension={dimension} /> */}
 
         </Container>
-
-        // <Text text="Loading..." anchor={0.5}
-        //     x={700}
-        //     y={315}
-        //     style={
-        //         new TextStyle({
-        //             align: 'center',
-        //             fontFamily: '"Source Sans Pro", Helvetica, sans-serif',
-        //             fontSize: 50,
-        //             fontWeight: '400',
-        //             fill: ['#ffffff', '#00ff99'], // gradient
-        //             stroke: '#01d27e',
-        //             strokeThickness: 5,
-        //             letterSpacing: 20,
-        //             dropShadow: true,
-        //             dropShadowColor: '#ccced2',
-        //             dropShadowBlur: 4,
-        //             dropShadowAngle: Math.PI / 6,
-        //             dropShadowDistance: 6,
-        //             wordWrap: true,
-        //             wordWrapWidth: 440,
-        //         })
-        //     } />
     );
 };
-export default AppStage
+export default AppStage;

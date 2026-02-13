@@ -1,7 +1,12 @@
-import { Container, Sprite } from "@pixi/react"
+
+import * as PixiReact from "@pixi/react"
 import { dimensionType } from "../../@types"
 import React, { useEffect, useState } from 'react'
 import { interpolate, webpORpng } from "../../utils"
+
+// DO NOT remove: Cast to any to handle missing type definitions in some environments
+const { Container, Sprite } = PixiReact as any;
+
 const WaitingSprite = ({ visible, dimension }: { visible: boolean, dimension: dimensionType }) => {
     const [rotate, setRotate] = useState(0)
     const [scale, setScale] = useState(0.5)
@@ -27,4 +32,4 @@ const WaitingSprite = ({ visible, dimension }: { visible: boolean, dimension: di
         </Container>
     )
 }
-export default WaitingSprite
+export default WaitingSprite;

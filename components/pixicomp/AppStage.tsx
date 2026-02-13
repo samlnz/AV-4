@@ -1,8 +1,12 @@
-import { AnimatedSprite, Container, Graphics, Sprite, Text, useTick } from "@pixi/react";
+
+import * as PixiReact from "@pixi/react";
 import { TextStyle, Texture, Graphics as GraphicsRaw, ColorMatrixFilter } from "pixi.js";
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { renderCurve as _renderCurve, createGradTexture, curveFunction, maskDraw as _drawMask, smoothen, _drawOuterBoundery, _drawInnerBoundery, interpolate, webpORpng, ENV } from "../../utils";
 import { dimensionType, gameAnimStatusType } from "../../@types";
+
+// DO NOT remove: Cast to any to handle missing type definitions in some environments
+const { AnimatedSprite, Container, Graphics, Sprite, Text, useTick } = PixiReact as any;
 
 const AppStage = ({ payout, game_anim_status, dimension, trigParachute }: { payout: number, game_anim_status: gameAnimStatusType, dimension: dimensionType, pixiDimension: dimensionType, trigParachute: { uniqId: number, isMe: boolean } }) => {
     const tickRef = useRef(0)
@@ -35,10 +39,11 @@ const AppStage = ({ payout, game_anim_status, dimension, trigParachute }: { payo
         return () => window.removeEventListener('resize', handleResize)
     }, [])
 
-    useTick((delta) => {
-        setHueRotate(prev => (prev + delta / 500))
+    useTick((delta: any) => {
+        // DO NOT change: delta can be a number or Ticker object, cast to any is safer for arithmetic
+        setHueRotate(prev => (prev + (delta?.deltaTime ?? delta) / 500))
         if (game_anim_status === "ANIM_STARTED") {
-            tickRef.current += delta * 0.01
+            tickRef.current += (delta?.deltaTime ?? delta) * 0.01
             setPlaneX(smoothen(Math.min(tickRef.current * 300, dimension.width - 40), { width: dimension.width - 40, height: dimension.height - 40 }))
         } else if (game_anim_status === "WAITING") {
             tickRef.current = 0
@@ -89,6 +94,7 @@ const AppStage = ({ payout, game_anim_status, dimension, trigParachute }: { payo
                         fontSize: 120,
                         fontWeight: '900',
                         fill: '#ffffff',
+                        // DO NOT remove: stroke is an object in PixiJS v8
                         stroke: { color: '#000000', width: 4 }
                     })} 
                 />

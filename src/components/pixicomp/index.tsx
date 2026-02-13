@@ -1,8 +1,12 @@
-import { Stage, Container } from '@pixi/react';
+
+import * as PixiReact from '@pixi/react';
 import { useState, useEffect } from 'react';
 import { dimensionType } from '../../@types';
 import AppStage from './AppStage';
 import { useAviator } from '../../store/aviator';
+
+// DO NOT remove: Cast to any to handle missing type definitions in some environments
+const { Stage, Container } = PixiReact as any;
 
 const PIXIComponent = ({ pixiDimension, curPayout, trigParachute }: {
     pixiDimension: dimensionType, curPayout: number, trigParachute: { uniqId: number, isMe: boolean }
@@ -20,4 +24,4 @@ const PIXIComponent = ({ pixiDimension, curPayout, trigParachute }: {
         </Stage>
     );
 };
-export default PIXIComponent
+export default PIXIComponent;
