@@ -1,8 +1,17 @@
+
 import { ColorSource, Graphics, Texture } from "pixi.js";
 import * as PIXI from "pixi.js";
 import { dimensionType, game_global_vars_type } from "../@types";
 import { sound } from '@pixi/sound';
 import { Theme, ToastPosition, toast } from "react-toastify";
+
+// Define and export ENV to provide consistent API and Socket URLs across the application
+export const ENV = {
+    API_URL: process.env.REACT_APP_API_URL || "https://apiuat.bollygaming.games",
+    SOCKET_URL: process.env.REACT_APP_SOCKET_URL || "https://aviatoruat.bollygaming.games:3001",
+    ASSETS_IMAGE_URL: process.env.REACT_APP_ASSETS_IMAGE_URL || "https://s3.eu-west-2.amazonaws.com/lobbyuat.bollygaming.games/crash/aviator/"
+};
+
 export const Game_Global_Vars: game_global_vars_type = {
     curPayout: 0,
     allowedBet: false,
@@ -29,7 +38,7 @@ export const curveFunction = (x: number, dimension: dimensionType) => {
 
 export const renderCurve = (g: Graphics, _dimension: dimensionType) => {
     const dimension = { width: _dimension.width, height: _dimension.height - 40 }
-    const xAxis = Array.from({ length: dimension.width / 10 }, (_, index) => index * 10)
+    const xAxis = Array.from({ length: Math.floor(dimension.width / 10) }, (_, index) => index * 10)
     const points = xAxis.map(item => ({ x: item, y: dimension.height - curveFunction(item, dimension) }));
     g.clear()
     g.beginFill(0xE59407, 0.3);
@@ -146,11 +155,6 @@ export const openFullscreen = async () => {
             await elem.requestFullscreen();
         } catch (e) { }
     }
-    // else if (elem.webkitRequestFullscreen) { /* Safari */
-    //     elem.webkitRequestFullscreen();
-    // } else if (elem.msRequestFullscreen) { /* IE11 */
-    //     elem.msRequestFullscreen();
-    // }
 }
 
 /* Close fullscreen */
@@ -161,11 +165,6 @@ export const closeFullscreen = async () => {
         } catch (e) { }
 
     }
-    // else if (document.webkitExitFullscreen) { /* Safari */
-    //     document.webkitExitFullscreen();
-    // } else if (document.msExitFullscreen) { /* IE11 */
-    //     document.msExitFullscreen();
-    // }
 }
 
 export function interpolate(x: number, x1: number, x2: number, y1: number, y2: number) {
@@ -180,21 +179,17 @@ export function getHistoryItemColor(_val: string) {
 }
 export const testMobile = () => {
     if (/Mobi/i.test(navigator.userAgent) || /Macintosh/i.test(navigator.userAgent)) {
-        console.log("This is a mobile device");
         if (/iPhone/i.test(navigator.userAgent)) {
-            console.log("This is an iPhone");
             return {
                 mobile: true,
                 iPhone: true
             }
         } else if (/iPad/i.test(navigator.userAgent)) {
-            console.log("This is an iPad");
             return {
                 mobile: true,
                 iPhone: true
             }
         } else if (/Macintosh/i.test(navigator.userAgent)) {
-            console.log("This is a Macintosh");
             return {
                 mobile: true,
                 iPhone: true
@@ -206,7 +201,6 @@ export const testMobile = () => {
             }
         }
     } else {
-        console.log("This is a browser");
         return {
             mobile: false,
             iPhone: false

@@ -26,7 +26,7 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
     const drawOuterBoundery = useCallback((g: GraphicsRaw) => _drawOuterBoundery(g, dimension), [dimension])
     const drawInnerBoundery = useCallback((g: GraphicsRaw) => _drawInnerBoundery(g, dimension), [dimension])
 
-    const addParachute = (isMe: boolean) => {
+    const addParachute = useCallback((isMe: boolean) => {
         const pulse = Math.sin(tickRef.current) * 0.06;
         const pos = {
             x: (pulseBase + pulse) * planeX,
@@ -37,19 +37,21 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
         } else {
             setParachutesElse(v => ([...v, pos]))
         }
-    }
+    }, [pulseBase, planeX, dimension]);
+
     useEffect(() => {
         if (trigParachute.uniqId > 0) {
             addParachute(trigParachute.isMe)
         }
-    }, [trigParachute.uniqId])
+    }, [trigParachute.uniqId, trigParachute.isMe, addParachute])
 
     const gradTexture = useMemo(() => createGradTexture(dimension), [dimension])
 
-    const handleResize = () => {
+    const handleResize = useCallback(() => {
         setPlaneScale(interpolate(window.innerWidth, 400, 1920, 0.5, 0.2))
         setPulseBase(interpolate(window.innerWidth, 400, 1920, 0.6, 0.8))
-    }
+    }, [])
+
     useEffect(() => {
         const _plane = []
         for (let i = 1; i <= 15; i++) {
@@ -73,7 +75,7 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
             window.removeEventListener('resize', handleResize)
             clearInterval(t_out)
         }
-    }, [])
+    }, [handleResize])
 
     useTick((delta: any) => {
         // DO NOT change: delta can be a number or Ticker object, cast to any is safer for arithmetic
@@ -84,24 +86,24 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
     const dotRef = useRef<GraphicsRaw>(null);
     const gameBoardMask = useRef<GraphicsRaw>(null);
 
-
-
     const curveMask = useCallback((g: GraphicsRaw) => _drawMask(g, { width: dimension.width - 40, height: dimension.height - 40 }), [dimension])
     const dotLeftBottom = useCallback((g: GraphicsRaw) => _drawMask(g, { width: 1, height: 1 }), [])
-
-
 
     const [pulseGraph, setPulseGraph] = useState(1);
     useTick((delta: any) => {
         if (game_anim_status !== "ANIM_STARTED") return
         const amp = 0.06
         let pulse = amp;
-        // DO NOT change: delta can be a number or Ticker object, cast to any is safer for arithmetic
         tickRef.current += (delta?.deltaTime ?? delta) * 0.01
         pulse = Math.sin(tickRef.current) * amp
         setPulseGraph(pulse)
     })
-    useEffect(() => { setPlaneX(smoothen(Math.min(tickRef.current * 300, dimension.width - 40), { width: dimension.width - 40, height: dimension.height - 40 })) }, [tickRef.current])
+    
+    // ESLint disabled for tickRef.current intentional mutability usage in PIXI ticker
+    useEffect(() => { 
+        setPlaneX(smoothen(Math.min(tickRef.current * 300, dimension.width - 40), { width: dimension.width - 40, height: dimension.height - 40 })) 
+    }, [tickRef.current, dimension.width, dimension.height]); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         if (game_anim_status === "WAITING") tickRef.current = 0
         if (game_anim_status === "ANIM_CRASHED") setOntoCorner(0)
@@ -113,7 +115,8 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
             x: (pulseBase + pulseGraph) * planeX + _ontoCorner * 150 + 40,
             y: dimension.height - 40 - (1 - pulseGraph) * curveFunction(planeX, { width: dimension.width - 40, height: dimension.height - 40 }) - _ontoCorner * 50
         }
-    }, [pulseGraph, planeX, dimension, game_anim_status, ontoCorner])
+    }, [pulseGraph, planeX, dimension, game_anim_status, ontoCorner, pulseBase])
+
     const colorMatrix = useMemo(() => {
         const c = new ColorMatrixFilter();
         c.hue(hueRotate * 100, true);
@@ -204,7 +207,7 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
                             fontFamily: 'Roboto',
                             fontSize: 100,
                             fontWeight: '700',
-                            fill: ['#ffffff', '#ffffff'], // gradient
+                            fill: ['#ffffff', '#ffffff'],
                             stroke: '#111111',
                             strokeThickness: 2,
                             letterSpacing: 0,
@@ -229,25 +232,21 @@ const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigPara
                             scale={0.4}
                             image={`${process.env.REACT_APP_ASSETS_IMAGE_URL}${webpORpng}/dot.${webpORpng}`}
                             anchor={0.5}
-                            // x={20} y={coor + (Math.max(0, tickRef.current - 5) * 100 % (140000 / pixiDimension.width)) - 100}
-                            x={20} y={((coor as any) + (hueRotate * 400 % (140000 / (pixiDimension.width || 1))) - 100)}
+                            /* Fix: Simplified coordinate calculation and ensured numeric type by removing redundant Number() and ensuring operand precedence */
+                            x={20} y={coor + (hueRotate * 400 % (140000 / (pixiDimension.width || 1))) - 100}
                         />
                         <Sprite
                             scale={0.4}
                             image={`${process.env.REACT_APP_ASSETS_IMAGE_URL}${webpORpng}/dot.${webpORpng}`}
                             anchor={0.5}
-                            // x={coor - (Math.max(0, tickRef.current - 5) * 100 % (140000 / pixiDimension.width)) - 100}
-                            // y={dimension.height - 20}
-                            x={((coor as any) - (hueRotate * 400 % (140000 / (pixiDimension.width || 1))) - 100)}
+                            /* Fix: Simplified coordinate calculation and ensured numeric type by removing redundant Number() and ensuring operand precedence */
+                            x={coor - (hueRotate * 400 % (140000 / (pixiDimension.width || 1))) - 100}
                             y={dimension.height - 20}
                         />
                     </Container>
                 )}
             </Container>
             <Graphics draw={drawOuterBoundery} />
-
-            {/* <WaitingSprite visible={game_anim_status === "WAITING"} dimension={dimension} /> */}
-
         </Container>
     );
 };

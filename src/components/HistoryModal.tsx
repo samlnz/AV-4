@@ -25,22 +25,9 @@ const HistoryModal = ({ loaded, open, setOpen }: { loaded: boolean, open: boolea
     }
 
     const upper_ref = React.useRef<HTMLDivElement>(null)
-    React.useEffect(() => {
-        if (!loaded) return
-        if (!open) return
-        fetchData()
-    }, [date, filterProfit, rowsPerPage, page, loaded, open])
-    React.useEffect(() => { setPage(1) }, [date, filterProfit])
-    // React.useEffect(() => {
-    //     setTimeout(() => window.scrollTo(0, 0), 1000)
-    // })
-    const handleNext = () => {
-        setPage(prev => Math.min(prev + 1, Math.ceil(count / rowsPerPage)))
-    }
-    const handlePrev = () => {
-        setPage(prev => Math.max(prev - 1, 1))
-    }
-    const fetchData = async () => {
+
+    // Wrap fetchData in useCallback to satisfy dependency requirements
+    const fetchData = React.useCallback(async () => {
         setLoading(true)
         const pro_arr = ["all", "win", "loss"]
         let api_url = `/api/history/user?page=${page}&items_per_page=${rowsPerPage}&sort_by=created_at&sort_direction=desc&win=${pro_arr[filterProfit]}`
@@ -53,7 +40,23 @@ const HistoryModal = ({ loaded, open, setOpen }: { loaded: boolean, open: boolea
         setPL(betPL)
         setItems(items)
         setLoading(false)
+    }, [page, rowsPerPage, filterProfit, date]);
+
+    React.useEffect(() => {
+        if (!loaded) return
+        if (!open) return
+        fetchData()
+    }, [loaded, open, fetchData])
+
+    React.useEffect(() => { setPage(1) }, [date, filterProfit])
+    
+    const handleNext = () => {
+        setPage(prev => Math.min(prev + 1, Math.ceil(count / rowsPerPage)))
     }
+    const handlePrev = () => {
+        setPage(prev => Math.max(prev - 1, 1))
+    }
+
     return (
         <Modal
             open={open}
@@ -252,5 +255,3 @@ const HistoryModal = ({ loaded, open, setOpen }: { loaded: boolean, open: boolea
     )
 }
 export default HistoryModal;
-
-

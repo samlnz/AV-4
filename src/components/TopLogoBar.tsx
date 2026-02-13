@@ -31,7 +31,7 @@ const HeaderMenu = ({ loaded, scaleFactor, visible, setVisible, maxH, openSettin
             stopSound("win")
             stopSound("take")
         }
-    }, [musicChecked, fxChecked])
+    }, [musicChecked, fxChecked, loaded])
 
     return (
         <div className='menu-wrapper w-80 absolute right-0 top-[100%] z-20 p-1 pr-0 origin-top-right overflow-auto' style={{
@@ -203,4 +203,4 @@ const TopLogoBar = ({ loaded, setSettingModalOpen, setHistoryModalOpen, setRuleM
         </>
     )
 }
-export default TopLogoBar
+export default TopLogoBar;

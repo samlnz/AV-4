@@ -12,7 +12,7 @@ export default function SettingModal({ open, setOpen, bet6: { bet6, setBet6 } }:
         if (open) {
             setLocalBet6(bet6)
         }
-    }, [open])
+    }, [open, bet6])
     return (
         <Modal
             open={open}
@@ -26,7 +26,7 @@ export default function SettingModal({ open, setOpen, bet6: { bet6, setBet6 } }:
                 <div className="flex flex-col gap-4 justify-center items-center font-salsa text-white h-full min-h-screen">
                     <h1 className="text-2xl">Settings</h1>
                     <div className="grid grid-cols-2 gap-y-2 gap-x-4 w-[360px] justify-center items-center">
-                        {bet6.map((_, i) =>
+                        {localBet6.map((_, i) =>
                             <ChipItem key={i} id={i} bet6={{ bet6: localBet6, setBet6: setLocalBet6 }} />)}
                         <button onClick={handleClose} className="w-full px-4 bg-[#787882] rounded-md text-[24px] transition-all ease-in-out hover:bg-[#787882]/80">Cancel</button>
                         <button onClick={() => {

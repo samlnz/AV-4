@@ -67,7 +67,7 @@ const BetBoardTopSection = ({ filter }: { filter: "yearly" | "monthly" | "today"
                 }))
             }
         })()
-    }, [])
+    }, [filter])
     return (
         <>
             {

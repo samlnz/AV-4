@@ -8,7 +8,7 @@ import { dimensionType, gameAnimStatusType } from "../../@types";
 // DO NOT remove: Cast to any to handle missing type definitions in some environments
 const { AnimatedSprite, Container, Graphics, Sprite, Text, useTick } = PixiReact as any;
 
-const AppStage = ({ payout, game_anim_status, dimension, trigParachute }: { payout: number, game_anim_status: gameAnimStatusType, dimension: dimensionType, pixiDimension: dimensionType, trigParachute: { uniqId: number, isMe: boolean } }) => {
+const AppStage = ({ payout, game_anim_status, dimension, pixiDimension, trigParachute }: { payout: number, game_anim_status: gameAnimStatusType, dimension: dimensionType, pixiDimension: dimensionType, trigParachute: { uniqId: number, isMe: boolean } }) => {
     const tickRef = useRef(0)
     const [hueRotate, setHueRotate] = useState(0)
     const [planeScale, setPlaneScale] = useState(0.2)
@@ -94,7 +94,7 @@ const AppStage = ({ payout, game_anim_status, dimension, trigParachute }: { payo
                         fontSize: 120,
                         fontWeight: '900',
                         fill: '#ffffff',
-                        // DO NOT remove: stroke is an object in PixiJS v8
+                        /* Fix: Updated stroke style for PixiJS v8 compatibility */
                         stroke: { color: '#000000', width: 4 }
                     })} 
                 />

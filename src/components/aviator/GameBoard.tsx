@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useRef, useState } from 'react'
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
 import BetAutoSwitch from './BetAutoSwitch'
 // import { useSnackbar } from 'notistack';
 import { betAutoStateType, betBoardAllItemType, betBoardMyItemType, betPlaceStatusType, cashingStatusType, dimensionType } from '../../@types'
@@ -11,6 +11,7 @@ import SwitchButton from '../SwitchButton'
 import AutoBetModal from '../AutoBetModal'
 import BetBoard from './BetBoard'
 import CustomSnackBar from '../CustomSnackBar';
+
 const GameBoard = ({ bet6 }: { bet6: string[] }) => {
     const { aviatorState, setAviatorState } = useAviator()
     const [autoPlayingIndex, setAutoPlayingIndex] = useState(0)
@@ -20,8 +21,6 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
     });
     const [modalAutoPlayOpen, modalAutoPlaySetOpen] = useState(false);
     const [rotate, setRotate] = useState(0)
-
-
 
     const [trigParachute, setTrigParachute] = useState({ uniqId: 0, isMe: true })
 
@@ -49,7 +48,7 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
 
 
     const [cashes, setCashes] = useState<{ payout: number, win: number }[]>([])
-    // const { enqueueSnackbar } = useSnackbar();
+
     const _setBetValue = (val: string | ((prev: string) => string), i: number) => {
         if (typeof val === "string") {
             Game_Global_Vars.betValue[i] = val
@@ -67,12 +66,7 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
             })
         }
     }
-    const _setBetPlaceStatus = (val: betPlaceStatusType | betPlaceStatusType[], i: number) => {
-        // setBetPlaceStatus(prev => {
-        //     const new_val = [...prev]
-        //     new_val[i] = val
-        //     return new_val
-        // })
+    const _setBetPlaceStatus = useCallback((val: betPlaceStatusType | betPlaceStatusType[], i: number) => {
         if (typeof val === "object") {
             Game_Global_Vars.betPlaceStatus = val
             setBetPlaceStatus(val)
@@ -80,35 +74,39 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
             Game_Global_Vars.betPlaceStatus[i] = val
             setBetPlaceStatus(setStateTemplate(val, i))
         }
-    }
-    const _setCashingStatus = (val: cashingStatusType, i: number) => {
+    }, [])
+
+    const _setCashingStatus = useCallback((val: cashingStatusType, i: number) => {
         Game_Global_Vars.cashingStatus[i] = val
         setCashingStatus(setStateTemplate(val, i))
-    }
-    const _setPendingBet = (val: boolean | boolean[], i: number) => {
+    }, [])
+
+    const _setPendingBet = useCallback((val: boolean | boolean[], i: number) => {
         if (typeof val === "boolean") {
             setPendingBet(setStateTemplate(val, i))
         } else {
             setPendingBet(val)
         }
-    }
+    }, [])
+
     const _setEnabledAutoCashOut = (val: boolean, i: number) => {
         setEnabledAutoCashOut(setStateTemplate(val, i))
     }
     const _setAutoCashVal = (val: string, i: number) => {
         setAutoCashVal(setStateTemplate(val, i))
     }
-    const _setCashedWin = (val: number, i: number) => {
+    const _setCashedWin = useCallback((val: number, i: number) => {
         setCashedWin(setStateTemplate(val, i))
-    }
+    }, [])
 
-    const cancelAutoPlay = (i: number) => {
+    const cancelAutoPlay = useCallback((i: number) => {
         setAviatorState(prev => {
-            const v = prev.RemainedAutoPlayCount
+            const v = [...prev.RemainedAutoPlayCount]
             v[i] = 0
             return { ...prev, RemainedAutoPlayCount: v }
         })
-    }
+    }, [setAviatorState])
+
     const handleBetValueChange = (e: ChangeEvent<HTMLInputElement>, i: number) => {
         if (e.target.value.endsWith('.')) {
             _setBetValue(e.target.value, i)
@@ -123,85 +121,7 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
         }, i)
     }
 
-    const doBet = async (i: number) => {
-        if (!Game_Global_Vars.allowedBet) return
-        _setBetPlaceStatus("placing", i)
-        Game_Global_Vars.cashStarted[i] = false
-        _setCashingStatus("none", i)
-        if ((Game_Global_Vars.betPlaceStatus[0] === "placing" && i === 1) ||
-            (Game_Global_Vars.betPlaceStatus[1] === "placing" && i === 0)) {
-            await doDelay(1000)
-        }
-        const status = await placeBet(i)
-        // setAviatorState(prev => ({ ...prev, balance: prev.balance - parseFloat(betValue) }))
-        _setBetPlaceStatus(status ? "success" : "none", i)
-    }
-    const handleBet = async (i: number) => {
-        if (Game_Global_Vars.allowedBet) {
-            await doBet(i)
-        } else {
-            _setPendingBet(true, i); Game_Global_Vars.pendingBet[i] = true
-        }
-
-    }
-    const cancelBet = async (i: number) => {
-        if (Game_Global_Vars.pendingBet[i]) {
-            _setPendingBet(false, i); Game_Global_Vars.pendingBet[i] = false
-        } else {
-            const { data: { status, balance, message } }: { data: { status: boolean, balance: number, message: string } } = await axios.post('/api/games/crash/play/cancel-bet', {
-                gameID: Game_Global_Vars.id[i]
-            })
-            if (status) {
-                _setBetPlaceStatus("none", i)
-                setAviatorState(prev => ({ ...prev, balance }))
-            } else {
-                showToast(message)
-            }
-        }
-        if (aviatorState.RemainedAutoPlayCount[i] > 0) {
-            cancelAutoPlay(i)
-        }
-    }
-
-    useEffect(() => {
-        setCrashColor(crashHistory.map(item => getHistoryItemColor(item)))
-    }, [crashHistory])
-    const handleCashOut = async (i: number, auto?: boolean) => {
-        if (Game_Global_Vars.cashStarted[i]) return
-        Game_Global_Vars.cashStarted[i] = true
-        _setCashingStatus("caching", i)
-        await aviatorState.socket?.emit(auto ? "auto-cashout" : "cashout", `crash-round-${Game_Global_Vars.id[i]}`);
-    }
-    const handleResize = () => {
-        const width = Math.min(aviatorState.dimension.width, pixi_ref.current?.clientWidth || 0)
-        const height = Math.max(150, window.innerHeight - (footer_ref.current?.clientHeight || 0) - 150 - (width > 1392 ? 0 : 10))
-        setPixiDimension({ width, height })
-        setAviatorState(prev => {
-            const new_width = prev.dimension.width;
-            const new_height = new_width * height / width
-            return {
-                ...prev,
-                dimension: {
-                    width: new_width,
-                    height: new_height
-                }
-            }
-        })
-    }
-    useEffect(() => {
-        if (crashHistory.length === 0) {
-            axios.post('/api/crash/play/recent-rec').then((data) => {
-                setCrashHistory(data.data.data.map((v: any) => `${parseFloat(v.max_payout).toFixed(2)}x`))
-            }).catch(e=>console.error(e))
-        }
-        handleResize()
-        window.addEventListener('resize', handleResize)
-        setInterval(() => setRotate(prev => prev + 10), 100)
-        return () => {
-            window.removeEventListener('resize', handleResize)
-        }
-    }, [])
-    const placeBet: (i: number) => Promise<boolean> = async (i: number) => {
+    const placeBet: (i: number) => Promise<boolean> = useCallback(async (i: number) => {
         try {
             const {
                 data: {
@@ -232,7 +152,7 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                 if ((aviatorState.autoPlayParams[i].stopIfarr[0] > 0 && (game?.account.balance || 0) < aviatorState.autoPlayParams[i].stopIfarr[0]) ||
                     (aviatorState.autoPlayParams[i].stopIfarr[1] > 0 && (game?.account.balance || 0) > aviatorState.autoPlayParams[i].stopIfarr[1])) {
                     setAviatorState(prev => {
-                        const v = prev.RemainedAutoPlayCount
+                        const v = [...prev.RemainedAutoPlayCount]
                         v[i] = 0
                         return { ...prev, RemainedAutoPlayCount: v }
                     })
@@ -242,23 +162,109 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
             }
             return status
         } catch (e: any) {
-            // setAviatorState(prev => ({ ...prev, auth: false }))
             console.log(e)
             showToast(((e as AxiosError)?.response?.data as any)?.message || "Oops! Please try again.")
         }
-
         return false
+    }, [aviatorState.autoPlayParams, setAviatorState]);
+
+    const doBet = useCallback(async (i: number) => {
+        if (!Game_Global_Vars.allowedBet) return
+        _setBetPlaceStatus("placing", i)
+        Game_Global_Vars.cashStarted[i] = false
+        _setCashingStatus("none", i)
+        if ((Game_Global_Vars.betPlaceStatus[0] === "placing" && i === 1) ||
+            (Game_Global_Vars.betPlaceStatus[1] === "placing" && i === 0)) {
+            await doDelay(1000)
+        }
+        const status = await placeBet(i)
+        _setBetPlaceStatus(status ? "success" : "none", i)
+    }, [placeBet, _setBetPlaceStatus, _setCashingStatus]);
+
+    const handleBet = useCallback(async (i: number) => {
+        if (Game_Global_Vars.allowedBet) {
+            await doBet(i)
+        } else {
+            _setPendingBet(true, i); Game_Global_Vars.pendingBet[i] = true
+        }
+    }, [doBet, _setPendingBet]);
+
+    const cancelBet = async (i: number) => {
+        if (Game_Global_Vars.pendingBet[i]) {
+            _setPendingBet(false, i); Game_Global_Vars.pendingBet[i] = false
+        } else {
+            const { data: { status, balance, message } }: { data: { status: boolean, balance: number, message: string } } = await axios.post('/api/games/crash/play/cancel-bet', {
+                gameID: Game_Global_Vars.id[i]
+            })
+            if (status) {
+                _setBetPlaceStatus("none", i)
+                setAviatorState(prev => ({ ...prev, balance }))
+            } else {
+                showToast(message)
+            }
+        }
+        if (aviatorState.RemainedAutoPlayCount[i] > 0) {
+            cancelAutoPlay(i)
+        }
     }
+
     useEffect(() => {
-        if (aviatorState.RemainedAutoPlayCount[0] > 0) {
+        setCrashColor(crashHistory.map(item => getHistoryItemColor(item)))
+    }, [crashHistory])
+
+    const handleCashOut = useCallback(async (i: number, auto?: boolean) => {
+        if (Game_Global_Vars.cashStarted[i]) return
+        Game_Global_Vars.cashStarted[i] = true
+        _setCashingStatus("caching", i)
+        await aviatorState.socket?.emit(auto ? "auto-cashout" : "cashout", `crash-round-${Game_Global_Vars.id[i]}`);
+    }, [aviatorState.socket, _setCashingStatus]);
+
+    const handleResize = useCallback(() => {
+        const width = Math.min(aviatorState.dimension.width, pixi_ref.current?.clientWidth || 0)
+        const height = Math.max(150, window.innerHeight - (footer_ref.current?.clientHeight || 0) - 150 - (width > 1392 ? 0 : 10))
+        setPixiDimension({ width, height })
+        setAviatorState(prev => {
+            const new_width = prev.dimension.width;
+            const new_height = new_width * height / width
+            return {
+                ...prev,
+                dimension: {
+                    width: new_width,
+                    height: new_height
+                }
+            }
+        })
+    }, [aviatorState.dimension.width, setAviatorState])
+
+    useEffect(() => {
+        if (crashHistory.length === 0) {
+            axios.post('/api/crash/play/recent-rec').then((data) => {
+                setCrashHistory(data.data.data.map((v: any) => `${parseFloat(v.max_payout).toFixed(2)}x`))
+            }).catch(e=>console.error(e))
+        }
+        handleResize()
+        window.addEventListener('resize', handleResize)
+        const intv = setInterval(() => setRotate(prev => prev + 10), 100)
+        return () => {
+            window.removeEventListener('resize', handleResize)
+            clearInterval(intv)
+        }
+    }, [crashHistory.length, handleResize])
+
+    const auto0 = aviatorState.RemainedAutoPlayCount[0];
+    useEffect(() => {
+        if (auto0 > 0) {
             handleBet(0)
         }
-    }, [aviatorState.RemainedAutoPlayCount[0]])
+    }, [auto0, handleBet])
+
+    const auto1 = aviatorState.RemainedAutoPlayCount[1];
     useEffect(() => {
-        if (aviatorState.RemainedAutoPlayCount[1] > 0) {
+        if (auto1 > 0) {
             handleBet(1)
         }
-    }, [aviatorState.RemainedAutoPlayCount[1]])
+    }, [auto1, handleBet])
+
     useEffect(() => {
         const socket = aviatorState.socket
         if (!socket) return
@@ -272,9 +278,6 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
         }
         sendHeartbeat()
         try {
-
-            // await socket.emit("join", `crash-round-${Game_Global_Vars.id}`);
-
             socket.on("message", async ({ message, update }: { message: string, update: number }) => {
                 try {
                     if (message === "GAME_START") {
@@ -292,7 +295,6 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                         setAviatorState(prev => ({ ...prev, game_anim_status: "ANIM_CRASHED" }))
                         _setBetPlaceStatus(["none", "none"], 0)
                         playSound("flew")
-                        // socket.removeAllListeners("message")
                         setTimeout(() => {
                             setAviatorState(prev => ({ ...prev, game_anim_status: "WAITING" }))
                         }, 3000);
@@ -305,7 +307,7 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                             }
                         }, 1000);
                         setAviatorState(prev => {
-                            const new_auto_count = prev.RemainedAutoPlayCount
+                            const new_auto_count = [...prev.RemainedAutoPlayCount]
                             if (new_auto_count[0] > 0) {
                                 if (!Game_Global_Vars.pendingBet[0]) {
                                     new_auto_count[0]--
@@ -353,7 +355,7 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                         const { data: { win } }: { data: { win: number } } = await axios.post(`/api/games/crash/${Game_Global_Vars.id[roundIdIndex]}/cash-out`)
                         if (win) {
                             setAviatorState(prev => {
-                                const new_auto = prev.RemainedAutoPlayCount
+                                const new_auto = [...prev.RemainedAutoPlayCount]
                                 if ((aviatorState.autoPlayParams[roundIdIndex].stopIfarr[2] > 0 && win > aviatorState.autoPlayParams[roundIdIndex].stopIfarr[2])) {
                                     new_auto[roundIdIndex] = 0
                                 }
@@ -364,33 +366,20 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                                 }
                             })
                             _setCashedWin(win, roundIdIndex)
-                            // setSnackState({ open: true, msg: `Cashed out ${win} successfully.` })//!TODO
-                            // enqueueSnackbar(`Cashed out ${win} successfully.`, {
-                            //     variant: 'success' as VariantType,
-                            //     anchorOrigin: {
-                            //         vertical: "top",
-                            //         horizontal: "center"
-                            //     },
-
-                            // });
-                            // showToast(`Cashed out ${win} successfully.`, "info")
                             playSound("win")
                         }
                         _setCashingStatus("success", roundIdIndex)
                         _setBetPlaceStatus("none", roundIdIndex)
                         setAviatorState(prev => {
-                            const new_auto_count = prev.RemainedAutoPlayCount
+                            const new_auto_count = [...prev.RemainedAutoPlayCount]
                             new_auto_count[roundIdIndex] = new_auto_count[roundIdIndex] > 0 ? new_auto_count[roundIdIndex] - 1 : 0
                             return { ...prev, RemainedAutoPlayCount: new_auto_count }
                         })
                     }
-
                 } catch (e: any) {
-                    // setAviatorState(prev => ({ ...prev, auth: false }))
                     console.log(e)
                     showToast(((e as AxiosError)?.response?.data as any)?.message || "Oops! Please try again.")
                 }
-
             })
             socket.on("INCOMING_BET", async ({ username, betAmount, gameCrashId, gameId }: { username: string, betAmount: number, gameCrashId: number, gameId: number }) => {
                 setBetBoardAllItem(prev => ([{ username, betAmount, gameCrashId }, ...prev]))
@@ -427,19 +416,15 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                 }
             })
         } catch (e: any) {
-            // setAviatorState(prev => ({ ...prev, auth: false }))
             console.log(e)
             showToast(((e as AxiosError)?.response?.data as any)?.message || "Oops! Please try again.")
         }
-    }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [aviatorState.autoPlayParams, aviatorState.socket, doBet, handleCashOut, setAviatorState, _setCashingStatus, _setCashedWin, _setBetPlaceStatus, _setPendingBet])
 
 
     return (
-        // style={{background:"radial-gradient(circle, rgba(86, 0, 152, 1) 0%, rgba(41, 0, 73, 1)"}}
         <div className='flex overflow-auto' style={{ height: "calc(100vh - 50px)" }}>
-            {/* <div className=' bg-[#1C1C1C] text-white relative'>
-                <TopLogoBar loaded={t} setSettingModalOpen={setSettingModalOpen} setHistoryModalOpen={setHistoryModalOpen} setRuleModalOpen={setRuleModalOpen} />
-            </div> */}
             <CustomSnackBar cashes={cashes} setCashes={setCashes} />
             <div className="w-[460px] hidden lg:block h-full">
                 <BetBoard data={{ betBoardAllItem, betBoardMyItem }} />
@@ -481,11 +466,6 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                     <PIXIComponent pixiDimension={pixiDimension} curPayout={curPayout} trigParachute={trigParachute} />
                 </div>
                 <div className="flex flex-col w-full" ref={footer_ref}>
-                    {/* <div className='flex justify-center gap-3 w-full'>
-                        <GameSettingButton onClick={() => setRuleModalOpen(true)} href='#svg-info' title='Game Rules' />
-                        <GameSettingButton onClick={() => setSettingModalOpen(true)} href='#svg-setting' title='Game Settings' />
-                        <GameSettingButton onClick={() => setHistoryModalOpen(true)} href='#svg-wallet' title={`${aviatorState.balance.toLocaleString('en-US', { style: 'currency', currency: 'INR' }).substring(1)}`} />
-                    </div> */}
                     <div className={`grid grid-cols-1 gap-2 relative ${betButtonCount === 1 ? "" : "lg:grid-cols-2"}`}>
                         <button
                             onClick={() => {
@@ -566,10 +546,6 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                                     {betAutoState[i] === "auto" ?
                                         <div className='flex justify-between gap-2 items-center min-w-[300px]'>
                                             <button
-                                                // disabled={
-                                                //     aviatorState.RemainedAutoPlayCount === -1 &&
-                                                //     (aviatorState.game_anim_status !== "WAITING" || betPlaceStatus !== "none")
-                                                // }
                                                 onClick={() => {
                                                     if (aviatorState.RemainedAutoPlayCount[i] < 1) {
                                                         modalAutoPlaySetOpen(true)
@@ -593,13 +569,13 @@ const GameBoard = ({ bet6 }: { bet6: string[] }) => {
                                                         _setEnabledAutoCashOut(checked, i); Game_Global_Vars.enabledAutoCashOut[i] = checked
                                                     }} />
                                                 <div className='flex gap-1 px-3 py-[2px] rounded-full bg-[#1F1F1F]'>
-                                                    <input disabled={!enabledAutoCashOut} readOnly={betPlaceStatus[i] === "success" || pendingBet[i]} type="text" value={autoCashVal[i]}
+                                                    <input disabled={!enabledAutoCashOut[i]} readOnly={betPlaceStatus[i] === "success" || pendingBet[i]} type="text" value={autoCashVal[i]}
                                                         onChange={(e) => {
                                                             const val = e.target.value.replace(/[^\d.]/g, '').trim() || '1'
                                                             _setAutoCashVal(val, i); Game_Global_Vars.autoCashVal[i] = val
                                                         }}
                                                         size={1} className='bg-transparent w-12 outline-none disabled:text-[#888] text-center' />
-                                                    <span className={`inline-block ${enabledAutoCashOut ? "text-white" : "text-[#888]"}`}>x</span>
+                                                    <span className={`inline-block ${enabledAutoCashOut[i] ? "text-white" : "text-[#888]"}`}>x</span>
                                                 </div>
                                             </div>
                                         </div> :
