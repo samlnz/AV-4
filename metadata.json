@@ -1,0 +1,10 @@
+{
+  "name": "BollyGaming Aviator",
+  "short_name": "Aviator",
+  "description": "Original Crash Game with high-performance PIXI rendering.",
+  "start_url": "/aviator",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "requestFramePermissions": []
+}
